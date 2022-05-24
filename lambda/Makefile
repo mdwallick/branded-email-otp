@@ -25,16 +25,19 @@ endif
 
 create:
 		cd ${CREATE_DIR} && \
+		npm install && \
 		zip -r function.zip * && \
 		aws lambda update-function-code --function-name generate-shared-secret --zip-file fileb://function.zip
 
 generate:
 		cd ${GENERATE_DIR} && \
+		npm install && \
 		zip -r function.zip * && \
 		aws lambda update-function-code --function-name generate-totp --zip-file fileb://function.zip
 
 delete:
 		cd ${DELETE_DIR} && \
+		npm install && \
 		zip -r function.zip * && \
 		aws lambda update-function-code --function-name delete-shared-secret --zip-file fileb://function.zip
 
