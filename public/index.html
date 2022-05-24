@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Welcome to the Fun-Auth Experience!</title>
+  <link rel="icon" type="image/x-icon" href="https://cdn.glitch.com/e75e53af-e9d3-47a2-a7c5-63e6fac60a26%2Ffavicon-32x32.png?v=1600548309703" />
+  <link href="/style.css" type="text/css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <!-- Okta authjs -->
+  <script src="https://global.oktacdn.com/okta-auth-js/6.3.1/okta-auth-js.min.js" type="text/javascript"></script>
+  <!-- Okta Sign-In Widget: Core js and css -->
+  <script src="https://global.oktacdn.com/okta-signin-widget/6.2.0/js/okta-sign-in.min.js" type="text/javascript"></script>
+  <link href="https://global.oktacdn.com/okta-signin-widget/6.2.0/css/okta-sign-in.min.css" type="text/css" rel="stylesheet">
+
+  <script type="text/javascript">
+    let currentModalId;
+    let state = "";
+    let username = "";
+
+    // const apiServicesBaseURL = "https://funauth.thorax.studio/api";
+    const apiServicesBaseURL = "http://localhost:3000/api";
+    const oktaUrl = "https://oauth.thorax.studio";
+    const oktaApiServicesBaseURL = `${oktaUrl}/api/v1`;
+    const okta_api_scopes = [
+      'okta.users.manage',
+      'okta.groups.read'
+    ];
+    const issuer = `${oktaUrl}/oauth2/ausi7uiu64nuA5EMl696`;
+    const clientId = "0oai7ug90c91xxoMU696";
+    const redirectUri = "http://localhost:8080/";
+
+    const oktaApiAuthClient = new OktaAuth({
+      issuer: oktaUrl,
+      clientId: clientId,
+      redirectUri: redirectUri,
+      tokenManager: {
+        storage: 'sessionStorage'
+      }
+    });
+
+    // Set up the widget
+    let widgetConfig = {
+      clientId: clientId,
+      redirectUri: redirectUri,
+      useInteractionCodeFlow: true, // OIE Specific behaviors
+      authParams: {
+        issuer: issuer,
+        scopes: [
+          'openid',
+          'email',
+          'profile',
+          'address',
+          'phone',
+          'offline_access'
+        ]
+      },
+      brandName: 'Thorax Studios',
+      colors: {
+        brand: '#d57208'
+      },
+      features: {
+        router: true,
+        multiOptionalFactorEnroll: true,
+        showPasswordToggleOnSignInPage: true,
+        scrollOnError: false,
+        rememberMe: true
+      },
+      helpLinks: {
+        help: '#'
+      },
+      i18n: {
+        'en': {
+          'oie.remember': 'Remember this device'
+        }
+      },
+      transformUsername: function(username, operation) {
+        _username = username;
+        return username
+      },
+      el: '#okta-login-container'
+    };
+
+    // const urlParams = new URLSearchParams(window.location.search);
+    // let token = urlParams.get('token');
+
+    // if (token) {
+    //   widgetConfig.recoveryToken = token;
+    //   widgetConfig.flow = 'resetPassword';
+    // }
+
+    //console.log('widgetConfig', widgetConfig);
+    let signIn = new OktaSignIn(widgetConfig);
+
+    signIn.before('identify', async() => {
+      // go get the value of the field the user typed their username into
+      console.log('firing before \'identify\'');
+    });
+    signIn.after('identify', async() => {
+      console.log('firing after \'identify\'');
+    });
+    signIn.after('challenge-authenticator', async() => {
+      console.log('firing after \'challenge-authenticator\'');
+    });
+
+    signIn.on('afterRender', function(context) {
+      let formName = context.formName;
+      let authenticatorKey = context.authenticatorKey;
+      console.log('afterRender:', formName);
+
+      if (formName == 'identify') {
+        // relabel the "Keep me signed in" checkbox so it actually makes sense
+        //var new_html = "Remember this device.<br>Do NOT check on a public computer.";
+        //$('[data-se-for-name="rememberMe"]').html(new_html);
+      }
+
+      if (formName == 'challenge-authenticator' && authenticatorKey == 'custom_otp') {
+        // we're on the authenticator selection screen AND the user
+        // chose our custom TOTP authenticator, so send the OTP email
+        sendEmailOTP(_username);
+      }
+    });
+
+    // signIn.on('ready', function() {
+    // });
+
+  </script>
+
+  <style type="text/css">
+    #okta-login-container {
+      padding-top: 0px;
+    }
+    /* .okta-form-title {
+      display: none;
+    }
+
+    .beacon-container {
+      display: none;
+    } */
+
+  </style>
+
+  <script src="/okta.js" type="text/javascript"></script>
+  <script src="/scripts.js" type="text/javascript"></script>
+</head>
+
+<body>
+  <div style="text-align: center;">
+    <img style="width: 100px" src="https://ok14static.oktacdn.com/fs/bco/1/fs04yg8g79sDh2Ipx696" />
+  </div>
+  <div class="title">Welcome to FunAuth!</div>
+  <div class="sub-title">An Okta Developer Experience</div>
+  <hr>
+  <div class="sub-header" id="signin-header">Where's the login...</div>
+
+  <div id="okta-login-container"></div>
+
+  <div id="okta-post-login-container" class="hidden">
+
+    <div id="challenge2Section">
+      <div>
+        <strong>Challenge 2: Protect The API</strong>
+      </div>
+      <div>
+        Public API <a href="#" onclick="handlePublicAPICall()">Click Here to test</a>
+      </div>
+      <div>
+        Private API (Requires Valid JWT)
+        <a href="#" onclick="handlePrivateAPICall()">Click Here to test</a>
+      </div>
+      <div>
+        Access API (Requires Valid JWT with claim from Token Hook)
+        <a href="#" onclick="handleAccessAPICall()">Click Here to test</a>
+      </div>
+      <div>
+        Results:
+      </div>
+      <div>
+        <textarea id="apiResultsDisplay"></textarea>
+      </div>
+    </div>
+
+    <div id="challenge1Section">
+      <!-- Tab links -->
+      <div class="tab">
+        <button id="showIdTokenTabBtn" class="tablinks" onclick="openTokenTab(event, 'idTokenTab')">
+          Id Token
+        </button>
+        <button id="showAccessTokenTabBtn" class="tablinks" onclick="openTokenTab(event, 'accessTokenTab')">
+          Access Token
+        </button>
+        <button id="showApiAccessTokenTabBtn" class="tablinks hidden" onclick="openTokenTab(event, 'apiAccessTokenTab')">
+          API Access Token
+        </button>
+        <button id="showUserListTabBtn" class="tablinks hidden" onclick="openTokenTab(event, 'userListTab')">
+          User Management
+        </button>
+        <button id="signOutBtn" class="tablinks" onclick="signOut()">
+          Sign Out
+        </button>
+      </div>
+
+      <!-- Tab content -->
+      <div id="idTokenTab" class="tabcontent">
+        <p><textarea id="idTokenDisplay"></textarea></p>
+      </div>
+
+      <div id="accessTokenTab" class="tabcontent">
+        <p><textarea id="accessTokenDisplay"></textarea></p>
+      </div>
+
+      <div id="apiAccessTokenTab" class="tabcontent">
+        <button onclick="getOktaApiToken()">
+          Get Okta API Access Token
+        </button>
+        <button onclick="hasSession()">
+          Session Exists?
+        </button>
+        <p><textarea id="apiAccessTokenDisplay"></textarea></p>
+      </div>
+
+      <div id="userListTab" class="tabcontent hidden">
+        <div>
+          <button onclick="showModal('createUserModal')">
+            Create User
+          </button>
+          <button onclick="loadUserList();">
+            Refresh User List
+          </button>
+          <a href="https://thoraxstudios-admin.okta.com/admin/users" target="_blank">Okta Admin</a>&nbsp;
+          <a href="https://thorax-studios.admin.unidemo.info/" target="_blank">Custom Admin Demo</a>
+        </div>
+
+        <table id="userListTable" border="1" class="table"></table>
+      </div>
+
+    </div>
+
+    <div style="clear:both">
+
+    </div>
+  </div>
+
+  <div class="footer">
+    Copyright 2010-2022 Okta Fun-Auth Experience. All rights reserved.
+  </div>
+
+  <div class="loader"></div>
+
+  <!-- The Modals -->
+
+  <div id="createUserModal" class="modal">
+    <!-- Modal content -->
+    <div class="modal-content">
+      <span class="close" onclick="hideModal();">&times;</span>
+      <div>
+        First Name:
+      </div>
+      <div>
+        <input id="first_name" type="text" />
+      </div>
+      <div>
+        Last Name:
+      </div>
+      <div>
+        <input id="last_name" type="text" />
+      </div>
+      <div>
+        Email Address
+      </div>
+      <div>
+        <input id="email_addy" type="email" />
+      </div>
+      <div>
+        <input type="button" value="Save" onclick="createUser()" />
+      </div>
+    </div>
+  </div>
+
+  <div id="editUserModal" class="modal">
+    <!-- Modal content -->
+    <div class="modal-content">
+      <span class="close" onclick="hideModal();">&times;</span>
+      <div>
+        <label for="username">User Name</label>
+      </div>
+      <div>
+        <input id="username" type="text" name="username" disabled="true" />
+        <input id="userId" type="hidden" name="userId" />
+      </div>
+      <div>
+        First Name:
+      </div>
+      <div>
+        <input id="firstName" type="text" />
+      </div>
+      <div>
+        Last Name:
+      </div>
+      <div>
+        <input id="lastName" type="text" />
+      </div>
+      <div>
+        Email Address
+      </div>
+      <div>
+        <input id="email" type="email" />
+      </div>
+      <div>
+        Phone
+      </div>
+      <div>
+        <input id="phone" type="tel" />
+      </div>
+      <div>
+        <input type="button" value="Save" onclick="updateUser()" />
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    signIn.authClient.tokenManager.get('idToken').then(token => {
+      console.log("Checking token", token);
+      signIn.authClient.token.verify(token).then(() => {
+        console.log("Token is valid, user is already logged in");
+        checkAndShowIdToken();
+      }).catch(error => {
+        console.log("Token is not valid", error);
+        // Display the widget
+        signIn.showSignInToGetTokens().then(tokens => {
+          console.log("User authenticated", tokens);
+          // Store tokens
+          signIn.authClient.tokenManager.setTokens(tokens);
+          checkAndShowIdToken();
+          var idToken = tokens.idToken;
+          // save the user ID from the token
+          sessionStorage.setItem("userId", idToken.claims.sub);
+          // also save the userGroup claim value
+          sessionStorage.setItem("userGroup", idToken.claims.userGroup);
+        }).catch(function(error) {
+          console.log("Caught error", error);
+          // This function is invoked with errors the widget cannot recover from:
+          // Known errors: CONFIG_ERROR, UNSUPPORTED_BROWSER_ERROR
+          checkAndShowIdToken();
+        });
+      });
+    });
+
+    // why do I not have a session anymore? did something break in the
+    // 6.x branch of the SIW?
+    /*signIn.authClient.session.exists().then(exists => {
+      if (exists) {
+        // logged in
+        console.log("User is logged in");
+        checkAndShowIdToken();
+      } else {
+        // not logged in
+        // Display the widget
+        signIn.showSignInToGetTokens().then(function(tokens) {
+          console.log("User authenticated", tokens);
+          // Store tokens
+          signIn.authClient.tokenManager.setTokens(tokens);
+          checkAndShowIdToken();
+          var idToken = tokens.idToken;
+          // save the user ID from the token
+          sessionStorage.setItem("userId", idToken.claims.sub);
+          // also save the userGroup claim value
+          sessionStorage.setItem("userGroup", idToken.claims.userGroup);
+        }).catch(function(error) {
+          console.log("Caught error", error);
+          // This function is invoked with errors the widget cannot recover from:
+          // Known errors: CONFIG_ERROR, UNSUPPORTED_BROWSER_ERROR
+          checkAndShowIdToken();
+        });
+      }
+    }); */
+
+  </script>
+
+</body>
+
+</html>

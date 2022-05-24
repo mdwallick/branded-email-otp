@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="https://glitch.com/favicon.ico" />
+
+  <title>Activate Your Account</title>
+
+  <!-- Meta tags for SEO and social sharing -->
+  <meta name="robots" content="noindex" />
+
+  <!-- Import the webpage's stylesheet -->
+  <link rel="stylesheet" href="/style.css" />
+
+  <!-- Import the webpage's javascript file -->
+  <!-- <script src="/okta.js" defer></script> -->
+
+  <!-- Okta authjs -->
+  <script src="https://global.oktacdn.com/okta-auth-js/6.2.0/okta-auth-js.min.js" type="text/javascript"></script>
+  <!-- Okta Sign-In Widget: Core js and css -->
+  <script src="https://global.oktacdn.com/okta-signin-widget/6.1.1/js/okta-sign-in.min.js" type="text/javascript"></script>
+  <link href="https://global.oktacdn.com/okta-signin-widget/6.1.1/css/okta-sign-in.min.css" type="text/css" rel="stylesheet">
+
+  <script type="text/javascript">
+    const urlParams = new URLSearchParams(window.location.search);
+    let token = urlParams.get('token');
+
+    const oktaUrl = "https://oauth.thorax.studio";
+    const issuer = `${oktaUrl}/oauth2/ausi7uiu64nuA5EMl696`;
+    const clientId = "0oai7ug90c91xxoMU696";
+    const redirectUri = "http://localhost:8080/";
+
+    // Set up the widget
+    var signIn = new OktaSignIn({
+      clientId: clientId,
+      redirectUri: redirectUri,
+      useInteractionCodeFlow: true, // OIE Specific behaviors
+      recoveryToken: token,
+      authParams: {
+        issuer: issuer,
+        scopes: [
+          'openid',
+          'email',
+          'profile',
+          'offline_access'
+        ]
+      },
+      colors: {
+        brand: '#d57208'
+      },
+      features: {
+        showPasswordToggleOnSignInPage: true,
+        scrollOnError: false
+      },
+      transformUsername: function(username, operation) {
+        _username = username;
+        return username
+      },
+      el: '#okta-login-container'
+    });
+
+  </script>
+
+</head>
+
+<body>
+  <div class="wrapper">
+    <div class="content" role="main">
+      <div id="okta-login-container"></div>
+    </div>
+  </div>
+  <div class="loader"></div>
+
+  <script type="text/javascript">
+    // Display the widget
+    signIn.showSignInToGetTokens({})
+      .then(function(tokens) {
+        // Store tokens
+        signIn.authClient.tokenManager.setTokens(tokens);
+
+        // save the user ID from the token
+        sessionStorage.setItem("userId", tokens.idToken.claims.sub);
+        // also save the userGroup claim value
+        sessionStorage.setItem("userGroup", tokens.idToken.claims.userGroup);
+      }).catch(function(error) {
+        // This function is invoked with errors the widget cannot recover from:
+        // Known errors: CONFIG_ERROR, UNSUPPORTED_BROWSER_ERROR
+        console.log(error);
+      });
+
+  </script>
+
+</body>
+
+</html>

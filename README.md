@@ -1,2 +1,3 @@
-# custom-otp-lambda
-AWS lambda functions that help with my demo custom Email OTP authenticator
+# branded-email-otp
+
+Self-contained Node server, SPA client and AWS lambda functions to demonstrate multi-branded email OTP
