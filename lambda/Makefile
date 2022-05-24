@@ -23,6 +23,14 @@ else
 	@echo "AWS CLI not found. Please see: https://aws.amazon.com/cli/ for details."
 endif
 
+database:
+	aws dynamodb create-table --table-name custom-email-otp \
+		--attribute-definitions \
+			AttributeName=email,AttributeType=S \
+		--key-schema AttributeName=email,KeyType=HASH \
+		--provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 \
+		--table-class STANDARD
+
 create:
 		cd ${CREATE_DIR} && \
 		npm install && \
@@ -49,4 +57,4 @@ clean:
 		cd ../${DELETE_DIR} && \
 		rm -f function.zip
 
-all: check create generate delete clean
+all: check database create generate delete clean
