@@ -143,5 +143,6 @@ dist
 .svelte-kit
 
 .vscode/
+iam-policy.json
 
 # End of https://www.toptal.com/developers/gitignore/api/node
