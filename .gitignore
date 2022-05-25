@@ -145,4 +145,11 @@ dist
 .vscode/
 iam-policy.json
 
+# ignores for Terraform
+.terraform/
+*.hcl
+*.tfvars
+*.tfplan
+*.tfstate*
+
 # End of https://www.toptal.com/developers/gitignore/api/node
