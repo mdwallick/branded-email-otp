@@ -1,6 +1,11 @@
-variable "org_name" {}
-variable "base_url" {}
-variable "api_token" {}
+variable "org_name"    {}
+variable "base_url"    {}
+variable "api_token"   {}
+variable "aws_api_key" {}
+
+locals {
+  aws_api_key = var.aws_api_key
+}
 
 terraform {
   required_providers {
@@ -15,6 +20,7 @@ provider "okta" {
   base_url  = var.base_url
   api_token = var.api_token
 }
+
 resource "okta_group" "funauth_admins" {
   name        = "FunAuth.Admins"
   description = "Users in this group are granted admin access to FunAuth"
@@ -214,7 +220,7 @@ resource "okta_inline_hook" "token-hook" {
   auth = {
     key   = "x-api-key"
     type  = "HEADER"
-    value = "z8h7m92m4s8ancCSK5tuJ1DODuE7DvOl6MNIeDoB"
+    value = local.aws_api_key
   }
 }
 resource "okta_auth_server" "funauth_authz" {
